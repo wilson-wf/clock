@@ -1,0 +1,84 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "悬浮时钟"
+    },
+    {
+      "name": "module_desc",
+      "value": "桌面悬浮时钟小挂件"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "悬浮时钟应用"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "悬浮时钟"
+    },
+    {
+      "name": "permission_float_reason",
+      "value": "用于在桌面显示悬浮时钟"
+    },
+    {
+      "name": "permission_background_reason",
+      "value": "用于保持时钟在后台持续运行"
+    },
+    {
+      "name": "settings_title",
+      "value": "时钟设置"
+    },
+    {
+      "name": "theme_selector",
+      "value": "选择主题"
+    },
+    {
+      "name": "mode_selector",
+      "value": "显示模式"
+    },
+    {
+      "name": "mode_clock",
+      "value": "实时时钟"
+    },
+    {
+      "name": "mode_countdown",
+      "value": "倒计时"
+    },
+    {
+      "name": "mode_stopwatch",
+      "value": "秒表"
+    },
+    {
+      "name": "btn_show_floating",
+      "value": "显示悬浮窗"
+    },
+    {
+      "name": "btn_hide_floating",
+      "value": "隐藏悬浮窗"
+    },
+    {
+      "name": "btn_start",
+      "value": "开始"
+    },
+    {
+      "name": "btn_pause",
+      "value": "暂停"
+    },
+    {
+      "name": "btn_reset",
+      "value": "重置"
+    },
+    {
+      "name": "label_countdown_minutes",
+      "value": "倒计时分钟数"
+    },
+    {
+      "name": "close",
+      "value": "关闭"
+    },
+    {
+      "name": "settings",
+      "value": "设置"
+    }
+  ]
+}
