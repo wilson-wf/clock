@@ -1,0 +1,22 @@
+# Build output
+node_modules/
+build/
+output/
+.ohos/
+.hap/
+.harmony/
+*.hap
+*.app
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+~*

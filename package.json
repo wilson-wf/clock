@@ -12,15 +12,8 @@
       }
     }
   },
-  "dependencies": {
-    "@kit.AbilityKit": "6.0.0",
-    "@kit.ArkUI": "6.0.0",
-    "@kit.ArkData": "6.0.0",
-    "@kit.PerformanceAnalysisKit": "6.0.0",
-    "@kit.BasicServicesKit": "6.0.0"
-  },
   "devDependencies": {
-    "@ohos/hvigor": "6.0.0",
-    "@ohos/hvigor-ohos-plugin": "6.0.0"
+    "@ohos/hvigor": "^6.0.0",
+    "@ohos/hvigor-ohos-plugin": "^6.0.0"
   }
 }
