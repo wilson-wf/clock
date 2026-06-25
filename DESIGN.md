@@ -17,6 +17,12 @@
 - [11. 性能考量](#11-性能考量)
 - [12. 项目结构](#12-项目结构)
 - [13. 构建与部署](#13-构建与部署)
+- [14. 番茄钟模式](#14-番茄钟模式)
+- [15. 世界时钟](#15-世界时钟)
+- [16. 闹钟提醒](#16-闹钟提醒)
+- [17. 透明度调节](#17-透明度调节)
+- [18. 桌面小组件](#18-桌面小组件)
+- [19. 自定义主题](#19-自定义主题)
 
 ---
 
@@ -590,12 +596,18 @@ workspace/
 │           ├── pages/
 │           │   ├── Index.ets            # 主设置页
 │           │   └── FloatingClock.ets    # 悬浮窗页面
+│           ├── form/
+│           │   ├── ClockWidgetProvider.ets  # 桌面小组件 Provider
+│           │   └── ClockCard.ets          # 小组件卡片布局
 │           ├── components/
 │           │   ├── ClockWidget.ets      # 时钟组件
 │           │   ├── CountdownWidget.ets  # 倒计时组件
-│           │   └── StopwatchWidget.ets  # 秒表组件
+│           │   ├── StopwatchWidget.ets  # 秒表组件
+│           │   ├── PomodoroWidget.ets   # 番茄钟组件
+│           │   └── WorldClockWidget.ets # 世界时钟组件
 │           ├── model/
-│           │   └── Theme.ets            # 主题数据模型
+│           │   ├── Theme.ets            # 主题数据模型
+│           │   └── WorldClock.ets       # 世界时钟城市数据
 │           └── utils/
 │               ├── FloatingWindowManager.ets  # 悬浮窗管理器
 │               ├── PreferencesUtil.ets         # 配置持久化
@@ -659,18 +671,404 @@ hdc install entry-default-signed.hap
 
 ---
 
-## 附录：后续可扩展方向
+## 14. 番茄钟模式
 
-- [ ] 番茄钟模式（25 分钟工作 + 5 分钟休息）
-- [ ] 自定义主题颜色（颜色选择器）
-- [ ] 闹钟提醒功能
-- [ ] 世界时钟 / 多时区显示
-- [ ] 桌面小组件（ArkTS Widget）
-- [ ] 数据同步（云端备份配置）
-- [ ] 更多主题与字体
-- [ ] 透明度调节
+### 14.1 功能描述
+
+番茄钟（Pomodoro Timer）是一种时间管理方法，通过将工作分成 25 分钟的工作块（称为"番茄"），中间穿插短暂的休息，提高专注力。
+
+### 14.2 流程设计
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 番茄钟循环流程                        │
+│                                                      │
+│   ┌────────────┐    1个番茄完成    ┌────────────────┐ │
+│   │  🔴 工作中  │ ───────────────▶ │ ⏸ 短休息 5min  │ │
+│   │  (25分钟)  │                  │  (可跳过)        │ │
+│   └─────┬──────┘                  └───────┬────────┘ │
+│         │                                │            │
+│         │ N个番茄                       │            │
+│         │ (可配置)                      │ 回到工作中  │
+│         ▼                                ▼            │
+│   ┌────────────┐   完成 N 个番茄    ┌────────────────┐ │
+│   │  🔵 长休息  │ ◀─────────────── │    +1 番茄     │ │
+│   │ (15分钟)   │                   │                │ │
+│   └─────┬──────┘                   └────────────────┘ │
+│         │                                              │
+└─────────┼────────────────────────────────────────────┘
+          │ 长休息完成 → 重置计数器 → 重新开始
+```
+
+### 14.3 可配置参数
+
+| 参数 | 默认值 | 可调范围 | 说明 |
+|------|--------|----------|------|
+| 工作时长 | 25 分钟 | 5-60 分钟 | 每个番茄的专注时间 |
+| 短休息 | 5 分钟 | 1-30 分钟 | 每个番茄之间的休息 |
+| 长休息 | 15 分钟 | 5-60 分钟 | 完成所有轮数后的休息 |
+| 轮数 | 4 轮 | 1-8 轮 | 触发长休息所需的番茄数 |
+
+### 14.4 视觉反馈
+
+| 场景 | 颜色 |
+|------|------|
+| 工作阶段 | 正常主题文字色 |
+| 短休息阶段 | 绿色 `#81C784` |
+| 长休息阶段 | 蓝色 `#64B5F6` |
+| 最后 10 秒 | 橙色 `#FFB74D` 提醒 |
+
+### 14.5 组件设计
+
+```typescript
+// PomodoroWidget.ets
+interface PomodoroWidget {
+  workMinutes: number;       // @Link 工作时长
+  breakMinutes: number;      // @Link 短休息
+  longBreakMinutes: number;  // @Link 长休息
+  rounds: number;            // @Link 轮数
+  isRunning: boolean;        // @Link 运行状态
+  currentPhase: PomodoroPhase;  // @Link 当前阶段
+  completedRounds: number;   // @Link 已完成轮数
+  remainingSeconds: number;  // @Link 剩余秒数
+}
+```
 
 ---
 
-*文档版本：v1.0*
-*最后更新：2026-06-19*
+## 15. 世界时钟
+
+### 15.1 功能描述
+
+显示全球多个城市的当前时间，方便跨时区用户（如跨国会议、外贸从业者）快速查看不同时区的时间。
+
+### 15.2 支持城市
+
+预置 **23 个热门城市**，覆盖所有主要时区：
+
+| 区域 | 城市 |
+|------|------|
+| 🇨🇳 中国 | 北京、上海、香港、新加坡 |
+| 🇯🇵 日本/🇰🇷 韩国 | 东京、首尔 |
+| 🇮🇳 南亚 | 孟买 |
+| 🇦🇪 中东 | 迪拜 |
+| 🇷🇺 俄罗斯 | 莫斯科 |
+| 🇪🇺 欧洲 | 伦敦、巴黎、柏林 |
+| 🇪🇬 非洲 | 开罗 |
+| 🇺🇸 北美 | 纽约、洛杉矶、芝加哥、多伦多、温哥华、夏威夷 |
+| 🇧🇷 南美 | 圣保罗 |
+| 🇦🇺 大洋洲 | 悉尼、墨尔本、奥克兰 |
+
+### 15.3 技术实现
+
+**时间计算原理**：不依赖网络时区 API，通过本地 UTC 偏移量计算：
+
+```typescript
+// WorldClock.ets
+static getCityTime(city: CityTime): { time: string; date: string } {
+  const now = new Date();
+  // 本地 UTC = 本地时间 + 本地时区偏移
+  const localUtc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  // 目标城市时间 = 本地 UTC + 城市时区偏移
+  const targetTime = localUtc + (city.offsetHours * 60 + city.offsetMinutes) * 60 * 1000;
+  const targetDate = new Date(targetTime);
+  return format(targetDate);
+}
+```
+
+**城市数据结构**：
+
+```typescript
+interface CityTime {
+  id: string;              // 唯一标识
+  name: string;            // 显示名称
+  zone: string;            // IANA 时区 ID
+  offsetHours: number;     // UTC 整数偏移（支持负数）
+  offsetMinutes: number;    // 额外分钟偏移（如 +5:30）
+  flag: string;            // 国旗 emoji
+}
+```
+
+### 15.4 用户配置
+
+- 最多同时显示 **4 个城市**
+- 点击城市标签切换选中/取消
+- 默认：北京、东京、伦敦、纽约
+- 城市选择结果持久化到 Preferences
+
+### 15.5 显示布局
+
+在悬浮窗中，世界时钟模式显示：
+- 标题"世界时钟"
+- 最多 3 个城市的「旗帜 emoji + 城市名 + 当前时间」
+- 每秒自动刷新
+
+---
+
+## 16. 闹钟提醒
+
+### 16.1 功能描述
+
+用户设定一个目标时间，到达该时间时自动触发提醒。
+
+### 16.2 交互流程
+
+```
+设置闹钟时间 → 开启闹钟 → 系统检测到时间到达 → 触发提醒 → 闹钟自动关闭
+```
+
+### 16.3 实现方案
+
+**定时器检查机制**：
+
+```typescript
+// FloatingClock.ets - 闹钟检测定时器
+private startAlarmChecker(): void {
+  this.alarmCheckTimer = setInterval(() => {
+    if (!this.alarmEnabled) return;
+    const now = new Date();
+    // 每秒检查：时、分匹配则触发
+    if (now.getHours() === this.alarmHour &&
+        now.getMinutes() === this.alarmMinute &&
+        now.getSeconds() === 0) {
+      this.triggerAlarm();
+    }
+  }, 1000);
+}
+
+private triggerAlarm(): void {
+  this.alarmEnabled = false;
+  PreferencesUtil.setAlarmEnabled(false);
+}
+```
+
+### 16.4 配置项
+
+| 配置项 | 存储 Key | 默认值 |
+|--------|----------|--------|
+| 闹钟小时 | `alarm_hour` | 0 |
+| 闹钟分钟 | `alarm_minute` | 0 |
+| 闹钟开关 | `alarm_enabled` | false |
+
+### 16.5 界面设计
+
+- 闹钟时间显示：`闹钟 HH:MM` 格式
+- 设置按钮：弹出 TextInput 输入时、分
+- 开关 Toggle：独立控制闹钟启停
+- 运行中：显示为绿色文字，点击可一键关闭
+
+---
+
+## 17. 透明度调节
+
+### 17.1 功能描述
+
+通过滑块调节悬浮窗的整体透明度（20% - 100%），在"不遮挡背景内容"和"清晰可读"之间找到平衡。
+
+### 17.2 实现方案
+
+使用 ArkUI 的 `.opacity()` 修饰符：
+
+```typescript
+Stack() {
+  // ...内容
+}
+.backgroundColor(this.getTheme().bgColor)
+.opacity(this.windowOpacity / 100)  // 0.0 - 1.0
+```
+
+### 17.3 配置项
+
+| 配置项 | 存储 Key | 默认值 | 范围 |
+|--------|----------|--------|------|
+| 窗口透明度 | `window_opacity` | 75 | 20 - 100（步长 5） |
+
+### 17.4 使用场景
+
+- 100%：完全不透明，最大对比度
+- 75%：略微透明，适合大多数场景
+- 50%：半透明，可透过时钟看到背景文字
+- 30%：极透明，适合截图/录屏时使用
+
+---
+
+## 18. 桌面小组件
+
+### 18.1 功能描述
+
+通过 HarmonyOS 的 **ArkTS Widget（FormExtensionAbility）**，在系统桌面创建一个可添加到桌面的时钟小组件，无需打开应用即可查看时间。
+
+### 18.2 技术架构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                 ArkTS Widget 架构                        │
+│                                                          │
+│  ┌──────────────────┐     ┌──────────────────────────┐  │
+│  │  FormExtension   │ ──▶ │  FormBindingData          │  │
+│  │  Ability         │     │  (时间 + 日期数据对象)     │  │
+│  │  (Widget Provider)│     └──────────────────────────┘  │
+│  └──────────────────┘                                    │
+│           │                                              │
+│           ▼                                              │
+│  ┌──────────────────┐     ┌──────────────────────────┐  │
+│  │  Widget Layout   │ ◀── │  小组件卡片 eDLS/XML      │  │
+│  │  (布局 + 样式)    │     │  (2x2 / 4x2 规格)        │  │
+│  └──────────────────┘     └──────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 18.3 Widget Provider
+
+```typescript
+// ClockWidgetProvider.ets
+export default class ClockWidgetProvider extends FormExtensionAbility {
+  onAddForm(want: Want): FormBindingData {
+    // 创建小组件数据（当前时间 + 日期）
+    const data = {
+      'time': formatTime(new Date()),
+      'date': formatDate(new Date()),
+      'theme': 'dark'
+    };
+    return formBindingData.createFormBindingData(data);
+  }
+
+  onUpdateForm(formId: string): void {
+    // 可选：定期更新小组件数据
+  }
+
+  onRemoveForm(formId: string): void {
+    // 清理资源
+  }
+}
+```
+
+### 18.4 注册配置
+
+在 `module.json5` 中注册 Widget：
+
+```json5
+{
+  "forms": [
+    {
+      "name": "ClockWidgetProvider",
+      "srcEntry": "./ets/form/ClockWidgetProvider.ets",
+      "uiSyntax": "arkts",
+      "formConfig": {
+        "defaultFormWidth": 240,
+        "defaultFormHeight": 120,
+        "label": "$string:widget_label",
+        "description": "$string:widget_description",
+        "types": ["2x2", "2x4"],
+        "updateEnabled": true,
+        "updateDuration": 60,
+        "supportDimensions": ["2x2", "4x2"]
+      }
+    }
+  ]
+}
+```
+
+### 18.5 小组件规格
+
+| 规格 | 尺寸 | 描述 |
+|------|------|------|
+| 2x2 | 240×120 vp | 紧凑时钟，HH:MM + 日期 |
+| 4x2 | 480×120 vp | 横向时钟，HH:MM:SS + 完整日期 |
+
+### 18.6 添加到桌面
+
+1. 在设备桌面上**长按空白区域**
+2. 进入"服务卡片"或"小组件"列表
+3. 找到"悬浮时钟"应用
+4. 选择 2x2 或 4x2 规格
+5. 小组件自动添加到桌面
+
+### 18.7 数据更新
+
+- 每 60 秒自动刷新（`updateDuration: 60`）
+- 通过 `FormProvider.updateForm()` API 主动更新
+- 支持定时更新（`scheduledUpdateTime`）
+
+---
+
+## 19. 自定义主题
+
+### 19.1 功能描述
+
+用户可自定义悬浮窗的**背景色**和**文字色**，突破预设主题的限制。
+
+### 19.2 可配置项
+
+| 配置项 | 存储 Key | 默认值 |
+|--------|----------|--------|
+| 自定义背景色 | `custom_bg_color` | `rgba(30, 30, 60, 0.9)` |
+| 自定义文字色 | `custom_text_color` | `#E0E0FF` |
+| 使用自定义主题 | `use_custom_theme` | false |
+
+### 19.3 实现方案
+
+当 `use_custom_theme = true` 时，`getTheme()` 方法返回动态构建的主题：
+
+```typescript
+private getEffectiveTheme(): ThemeStyle {
+  if (this.useCustomTheme) {
+    return {
+      name: 'custom',
+      label: '自定义',
+      bgColor: this.customBgColor,
+      textColor: this.customTextColor,
+      subTextColor: this.adjustAlpha(this.customTextColor, 0.7),
+      borderColor: this.adjustAlpha(this.customTextColor, 0.15),
+      shadowColor: this.adjustAlpha(this.customBgColor, 0.5)
+    };
+  }
+  return ThemeManager.getTheme(this.themeName);
+}
+
+private adjustAlpha(hexColor: string, alpha: number): string {
+  // 将 #RRGGBB 转换为 rgba(r,g,b,a) 格式
+}
+```
+
+### 19.4 界面设计（主设置页）
+
+- Toggle 开关："使用自定义主题"
+- 颜色选择器：预设 8 种推荐颜色 + 自定义输入
+- 实时预览：背景色和文字色同步应用到预览卡片
+
+### 19.5 预设推荐颜色
+
+| 名称 | 背景色 | 文字色 |
+|------|--------|--------|
+| 午夜蓝 | `rgba(15, 25, 55, 0.9)` | `#A8C8FF` |
+| 森林墨绿 | `rgba(10, 40, 25, 0.9)` | `#B5E5C8` |
+| 玫瑰酒红 | `rgba(50, 15, 30, 0.9)` | `#FFB3C1` |
+| 琥珀金 | `rgba(40, 30, 10, 0.9)` | `#FFD699` |
+| 薄荷绿 | `rgba(10, 50, 45, 0.9)` | `#B2DFDB` |
+| 星空紫 | `rgba(30, 10, 50, 0.9)` | `#E1BEE7` |
+| 珊瑚橙 | `rgba(50, 25, 15, 0.9)` | `#FFCCBC` |
+| 冰川蓝 | `rgba(10, 35, 60, 0.9)` | `#B3E5FC` |
+
+---
+
+## 附录：功能演进
+
+| 功能 | 状态 |
+|------|------|
+| ✅ 实时时钟 | 已完成 |
+| ✅ 倒计时 | 已完成 |
+| ✅ 秒表 | 已完成 |
+| ✅ 番茄钟模式 | 已完成 |
+| ✅ 世界时钟 | 已完成 |
+| ✅ 闹钟提醒 | 已完成 |
+| ✅ 透明度调节 | 已完成 |
+| ✅ 桌面小组件 | 已完成 |
+| ✅ 自定义主题颜色 | 已完成 |
+| ⬜ 数据同步（云端备份配置） | 待实现 |
+| ⬜ 更多主题与字体 | 待实现 |
+
+---
+
+*文档版本：v2.0*
+*最后更新：2026-06-25*

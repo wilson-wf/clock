@@ -79,6 +79,78 @@
     {
       "name": "settings",
       "value": "设置"
+    },
+    {
+      "name": "mode_pomodoro",
+      "value": "番茄钟"
+    },
+    {
+      "name": "mode_worldclock",
+      "value": "世界时钟"
+    },
+    {
+      "name": "widget_label",
+      "value": "悬浮时钟"
+    },
+    {
+      "name": "widget_description",
+      "value": "实时显示当前时间与日期的桌面时钟小组件"
+    },
+    {
+      "name": "pomodoro_work",
+      "value": "工作时长（分钟）"
+    },
+    {
+      "name": "pomodoro_break",
+      "value": "短休息（分钟）"
+    },
+    {
+      "name": "pomodoro_long_break",
+      "value": "长休息（分钟）"
+    },
+    {
+      "name": "pomodoro_rounds",
+      "value": "轮数"
+    },
+    {
+      "name": "alarm_time",
+      "value": "闹钟时间"
+    },
+    {
+      "name": "alarm_enabled",
+      "value": "闹钟开关"
+    },
+    {
+      "name": "custom_bg_color",
+      "value": "背景颜色"
+    },
+    {
+      "name": "custom_text_color",
+      "value": "文字颜色"
+    },
+    {
+      "name": "use_custom_theme",
+      "value": "使用自定义主题"
+    },
+    {
+      "name": "window_opacity",
+      "value": "窗口透明度"
+    },
+    {
+      "name": "worldclock_cities",
+      "value": "世界时钟城市"
+    },
+    {
+      "name": "worldclock_add",
+      "value": "添加城市"
+    },
+    {
+      "name": "worldclock_remove",
+      "value": "移除"
+    },
+    {
+      "name": "transparency_label",
+      "value": "透明度"
     }
   ]
 }

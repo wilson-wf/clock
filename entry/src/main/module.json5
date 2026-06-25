@@ -35,6 +35,32 @@
         ]
       }
     ],
+    "forms": [
+      {
+        "name": "ClockWidgetProvider",
+        "srcEntry": "./ets/form/ClockWidgetProvider.ets",
+        "uiSyntax": "arkts",
+        "formConfig": {
+          "defaultFormWidth": 240,
+          "defaultFormHeight": 120,
+          "description": "$string:widget_description",
+          "label": "$string:widget_label",
+          "types": [
+            "2x2",
+            "2x4"
+          ],
+          "updateEnabled": true,
+          "scheduledUpdateTime": "08:00",
+          "updateDuration": 60,
+          "supportDimensions": [
+            "2x2",
+            "4x2"
+          ],
+          "portraitLayoutPath": "./form/ClockCardPortrait.xml",
+          "landscapeLayoutPath": "./form/ClockCardLandscape.xml"
+        }
+      }
+    ],
     "requestPermissions": [
       {
         "name": "ohos.permission.SYSTEM_FLOAT_WINDOW",
