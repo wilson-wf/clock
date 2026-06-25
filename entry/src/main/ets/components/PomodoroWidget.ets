@@ -96,6 +96,12 @@ export struct PomodoroWidget {
     return '长休息';
   }
 
+  private getPhaseIcon(): string {
+    if (this.currentPhase === 'work') return '🍅';
+    if (this.currentPhase === 'shortBreak') return '☕';
+    return '🌙';
+  }
+
   private getProgressRatio(): number {
     let total = 0;
     if (this.currentPhase === 'work') total = this.workMinutes * 60;
@@ -106,62 +112,105 @@ export struct PomodoroWidget {
   }
 
   private getTimeColor(): string {
-    if (this.currentPhase === 'work') return this.theme.textColor;
-    return '#81C784';
+    if (this.currentPhase === 'work') return this.theme.colors.textPrimary;
+    return this.theme.colors.success;
+  }
+
+  private getPhaseColor(): string {
+    if (this.currentPhase === 'work') return '#F87171';
+    if (this.currentPhase === 'shortBreak') return this.theme.colors.success;
+    return '#60A5FA';
   }
 
   build() {
-    Column({ space: 4 }) {
-      Text(this.getPhaseLabel())
-        .fontSize(11)
-        .fontColor(this.theme.subTextColor);
+    Column({ space: 6 }) {
+      // 阶段标签
+      Row({ space: 4 }) {
+        Text(this.getPhaseIcon())
+          .fontSize(11);
+        Text(this.getPhaseLabel())
+          .fontSize(11)
+          .fontColor(this.theme.colors.textSecondary);
+      }
+      .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+      .backgroundColor(this.theme.colors.bgSecondary)
+      .borderRadius(100);
 
+      // 时间显示
       Text(TimeFormatter.formatCountdown(this.remainingSeconds))
         .fontSize(26)
         .fontWeight(FontWeight.Bold)
         .fontColor(this.getTimeColor())
         .fontFamily('HarmonyOS Sans, monospace')
         .letterSpacing(1)
-        .margin({ top: 2 });
+        .lineHeight(32);
 
-      Row({ space: 2 }) {
-        Text(`${this.completedRounds}/${this.rounds}轮`)
-          .fontSize(10)
-          .fontColor(this.theme.subTextColor);
+      // 进度条
+      Stack({ alignContent: Alignment.Start }) {
+        // 背景轨道
+        Rect()
+          .width('100%')
+          .height(4)
+          .fill(this.theme.colors.bgSecondary)
+          .borderRadius(2);
 
-        if (this.currentPhase === 'work') {
-          Text('🍅')
-            .fontSize(10);
-        }
+        // 进度条
+        Rect()
+          .width(`${this.getProgressRatio() * 100}%`)
+          .height(4)
+          .fill(this.getPhaseColor())
+          .borderRadius(2);
       }
+      .width('100%')
+      .height(4);
 
+      // 轮数 + 操作按钮
       Row({ space: 8 }) {
-        if (!this.isRunning) {
-          Text('▶ 开始')
-            .fontSize(12)
-            .fontColor('#81C784')
-            .onClick(() => {
-              this.isRunning = true;
-            });
-        } else {
-          Text('⏸ 暂停')
-            .fontSize(12)
-            .fontColor('#FFB74D')
-            .onClick(() => {
-              this.isRunning = false;
-            });
+        // 轮数指示
+        Row({ space: 2 }) {
+          ForEach(Array.from({ length: this.rounds }, (_, i) => i), (index: number) => {
+            Circle()
+              .width(5)
+              .height(5)
+              .fill(index < this.completedRounds ? this.getPhaseColor() : this.theme.colors.bgSecondary);
+          }, (index: number) => index.toString());
         }
+        .layoutWeight(1);
 
-        Text('↺ 重置')
-          .fontSize(12)
-          .fontColor(this.theme.subTextColor)
+        // 操作按钮
+        if (!this.isRunning) {
+          Row({ space: 4 }) {
+            Text('▶')
+              .fontSize(12)
+              .fontColor(this.theme.colors.success);
+            Text('开始')
+              .fontSize(11)
+              .fontColor(this.theme.colors.textPrimary);
+          }
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .backgroundColor(this.theme.colors.bgSecondary)
+          .borderRadius(8)
+          .onClick(() => {
+            this.isRunning = true;
+          });
+        } else {
+          Row({ space: 4 }) {
+            Text('⏸')
+              .fontSize(12)
+              .fontColor(this.theme.colors.warning);
+            Text('暂停')
+              .fontSize(11)
+              .fontColor(this.theme.colors.textPrimary);
+          }
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .backgroundColor(this.theme.colors.bgSecondary)
+          .borderRadius(8)
           .onClick(() => {
             this.isRunning = false;
-            this.completedRounds = 0;
-            this.currentPhase = 'work';
-            this.resetToPhase();
           });
+        }
       }
+      .width('100%');
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center);

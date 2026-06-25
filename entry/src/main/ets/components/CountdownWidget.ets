@@ -54,28 +54,49 @@ export struct CountdownWidget {
     }
   }
 
-  private getColor(): string {
+  private getTimeColor(): string {
     if (this.remainingSeconds <= 10) {
-      return '#FF5252';
+      return this.theme.colors.danger;
     } else if (this.remainingSeconds <= 30) {
-      return '#FFB74D';
+      return this.theme.colors.warning;
     }
-    return this.theme.textColor;
+    return this.theme.colors.textPrimary;
+  }
+
+  private getProgress(): number {
+    if (this.totalSeconds === 0) return 0;
+    return (this.totalSeconds - this.remainingSeconds) / this.totalSeconds;
+  }
+
+  private getProgressColor(): string {
+    if (this.remainingSeconds <= 10) {
+      return this.theme.colors.danger;
+    } else if (this.remainingSeconds <= 30) {
+      return this.theme.colors.warning;
+    }
+    return this.theme.colors.primary;
   }
 
   build() {
-    Column({ space: 4 }) {
-      Text(TimeFormatter.formatCountdown(this.remainingSeconds))
-        .fontSize(28)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.getColor())
-        .fontFamily('HarmonyOS Sans, monospace')
-        .letterSpacing(1)
-        .margin({ top: 4 });
+    Stack({ alignContent: Alignment.Center }) {
+      Column({ space: 2 }) {
+        Text(TimeFormatter.formatCountdown(this.remainingSeconds))
+          .fontSize(28)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.getTimeColor())
+          .fontFamily('HarmonyOS Sans, monospace')
+          .letterSpacing(1)
+          .lineHeight(34);
 
-      Text('倒计时')
-        .fontSize(11)
-        .fontColor(this.theme.subTextColor);
+        Row({ space: 4 }) {
+          Text('⏱')
+            .fontSize(10);
+          Text('倒计时')
+            .fontSize(11)
+            .fontColor(this.theme.colors.textSecondary);
+        }
+      }
+      .alignItems(HorizontalAlign.Center);
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center);

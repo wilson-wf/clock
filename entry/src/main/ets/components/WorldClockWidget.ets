@@ -14,7 +14,7 @@ const KEY_CITY_IDS = 'selected_city_ids';
 export struct WorldClockWidget {
   @Prop theme: ThemeStyle;
   @State selectedCities: CityTime[] = [];
-  @State cityTimes: Map<string, { time: string; date: string }> = new Map();
+  @State cityTimes: Map<string, { time: string; date: string; isDay: boolean }> = new Map();
   private timerId: number = -1;
   private context: Context | null = null;
 
@@ -45,7 +45,6 @@ export struct WorldClockWidget {
         .map((id) => WorldClockData.getCityById(id.trim()))
         .filter((c): c is CityTime => c !== undefined);
       if (this.selectedCities.length === 0) {
-        // 默认：北京、东京、伦敦、纽约
         this.selectedCities = [
           WorldClockData.getCityById('beijing')!,
           WorldClockData.getCityById('tokyo')!,
@@ -54,7 +53,6 @@ export struct WorldClockWidget {
         ];
       }
     } catch (e) {
-      // 默认值
       this.selectedCities = [
         WorldClockData.getCityById('beijing')!,
         WorldClockData.getCityById('tokyo')!,
@@ -67,37 +65,57 @@ export struct WorldClockWidget {
   private updateTimes(): void {
     for (const city of this.selectedCities) {
       const result = WorldClockData.getCityTime(city);
-      this.cityTimes.set(city.id, result);
+      const hour = parseInt(result.time.split(':')[0]);
+      const isDay = hour >= 6 && hour < 18;
+      this.cityTimes.set(city.id, { ...result, isDay });
     }
-    // 触发 UI 更新
     this.cityTimes = new Map(this.cityTimes);
   }
 
+  private getDayNightIcon(isDay: boolean): string {
+    return isDay ? '☀️' : '🌙';
+  }
+
   build() {
-    Column({ space: 3 }) {
-      Text('世界时钟')
-        .fontSize(11)
-        .fontColor(this.theme.subTextColor)
-        .margin({ bottom: 2 });
+    Column({ space: 4 }) {
+      // 标题
+      Row({ space: 4 }) {
+        Text('🌍')
+          .fontSize(11);
+        Text('世界时钟')
+          .fontSize(11)
+          .fontColor(this.theme.colors.textSecondary);
+      }
+      .margin({ bottom: 2 });
 
+      // 城市列表
       ForEach(this.selectedCities.slice(0, 3), (city: CityTime) => {
-        Row({ space: 4 }) {
-          Text(city.flag)
-            .fontSize(12);
+        Row({ space: 6 }) {
+          // 日夜图标
+          Text(this.getDayNightIcon(this.cityTimes.get(city.id)?.isDay ?? true))
+            .fontSize(10)
+            .width(14);
 
-          Text(city.name)
-            .fontSize(12)
-            .fontColor(this.theme.subTextColor)
-            .layoutWeight(1);
+          // 城市信息
+          Column({ space: 0 }) {
+            Text(city.name)
+              .fontSize(11)
+              .fontColor(this.theme.colors.textSecondary);
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1);
 
-          Text(this.cityTimes.get(city.id)?.time ?? '--:--:--')
+          // 时间
+          Text(this.cityTimes.get(city.id)?.time ?? '--:--')
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
-            .fontColor(this.theme.textColor)
+            .fontColor(this.theme.colors.textPrimary)
             .fontFamily('monospace');
         }
         .width('100%')
-        .padding({ left: 4, right: 4 });
+        .padding({ left: 4, right: 4, top: 3, bottom: 3 })
+        .borderRadius(6)
+        .backgroundColor(this.theme.colors.bgSecondary);
       }, (city: CityTime) => city.id);
     }
     .width('100%')

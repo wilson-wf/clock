@@ -8,7 +8,7 @@ import type { DisplayMode } from './FloatingClock';
 @Entry
 @Component
 struct Index {
-  @State currentTheme: string = 'dark';
+  @State currentTheme: string = 'harmony_dark';
   @State currentMode: DisplayMode = 'clock';
   @State showDate: boolean = true;
   @State countdownMinutes: number = 5;
@@ -17,24 +17,19 @@ struct Index {
   @State previewTime: string = '00:00:00';
   @State previewDate: string = '';
 
-  // 番茄钟
   @State pomodoroWorkMin: number = 25;
   @State pomodoroBreakMin: number = 5;
   @State pomodoroLongBreakMin: number = 15;
   @State pomodoroRounds: number = 4;
 
-  // 闹钟
   @State alarmHour: number = 0;
   @State alarmMinute: number = 0;
   @State alarmEnabled: boolean = false;
   @State showAlarmPicker: boolean = false;
 
-  // 透明度
   @State windowOpacity: number = 75;
 
-  // 世界时钟
   @State selectedCityIds: string = 'beijing,tokyo,london,newyork';
-  @State showCityPicker: boolean = false;
 
   private timerId: number = -1;
 
@@ -49,7 +44,9 @@ struct Index {
   }
 
   private async loadPreferences(): Promise<void> {
-    this.currentTheme = await PreferencesUtil.getTheme();
+    const savedTheme = await PreferencesUtil.getTheme();
+    const existing = ThemeManager.THEMES.find(t => t.name === savedTheme);
+    this.currentTheme = existing ? savedTheme : 'harmony_dark';
     this.currentMode = (await PreferencesUtil.getMode()) as DisplayMode;
     this.showDate = await PreferencesUtil.getShowDate();
     this.countdownTotal = await PreferencesUtil.getCountdownSeconds();
@@ -77,6 +74,34 @@ struct Index {
     return ThemeManager.getTheme(this.currentTheme);
   }
 
+  private getBg(): string {
+    return this.getTheme().colors.bgPrimary;
+  }
+
+  private getCardBg(): string {
+    return this.getTheme().colors.bgElevated;
+  }
+
+  private getTextPrimary(): string {
+    return this.getTheme().colors.textPrimary;
+  }
+
+  private getTextSecondary(): string {
+    return this.getTheme().colors.textSecondary;
+  }
+
+  private getBorder(): string {
+    return this.getTheme().colors.borderColor;
+  }
+
+  private getDivider(): string {
+    return this.getTheme().colors.dividerColor;
+  }
+
+  private getPrimary(): string {
+    return this.getTheme().colors.primary;
+  }
+
   private async selectTheme(name: string): Promise<void> {
     this.currentTheme = name;
     await PreferencesUtil.setTheme(name);
@@ -100,7 +125,7 @@ struct Index {
 
   private async showFloatingWindow(): Promise<void> {
     const pos = await PreferencesUtil.getWindowPosition();
-    const ok = await FloatingWindowManager.getInstance().createFloatingWindow(240, 140, pos.x, pos.y);
+    const ok = await FloatingWindowManager.getInstance().createFloatingWindow(240, 150, pos.x, pos.y);
     this.isFloatingShown = ok;
   }
 
@@ -161,198 +186,18 @@ struct Index {
     this.selectedCityIds = ids.join(',');
   }
 
-  build() {
-    Scroll() {
-      Column() {
-        // 标题
-        Text('悬浮时钟')
-          .fontSize(28)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFF')
-          .margin({ top: 40, bottom: 8 });
-
-        Text('支持桌面小组件 · 多模式 · 多主题')
-          .fontSize(13)
-          .fontColor('#888888')
-          .margin({ bottom: 24 });
-
-        // 预览卡片
-        this.buildPreviewCard();
-
-        // 主题选择
-        this.buildSection('🎨 主题选择', () => this.buildThemeGrid());
-
-        // 模式选择
-        this.buildSection('📋 显示模式', () => this.buildModeButtons());
-
-        // 倒计时配置
-        if (this.currentMode === 'countdown') {
-          this.buildSection('⏱ 倒计时设置', () => this.buildCountdownConfig());
-        }
-
-        // 番茄钟配置
-        if (this.currentMode === 'pomodoro') {
-          this.buildSection('🍅 番茄钟设置', () => this.buildPomodoroConfig());
-        }
-
-        // 世界时钟
-        if (this.currentMode === 'worldclock') {
-          this.buildSection('🌍 世界时钟城市', () => this.buildWorldClockConfig());
-        }
-
-        // 日期显示
-        Row() {
-          Text('显示日期')
-            .fontSize(14)
-            .fontColor('#FFFFFF')
-            .layoutWeight(1);
-          Toggle({ type: ToggleType.Switch, isOn: this.showDate })
-            .selectedColor('#4FC3F7')
-            .switchPointColor('#FFFFFF')
-            .onChange(() => this.toggleShowDate());
-        }
-        .width('90%')
-        .margin({ bottom: 20 });
-
-        // 闹钟设置
-        this.buildSection('🔔 闹钟设置', () => this.buildAlarmConfig());
-
-        // 透明度设置
-        this.buildSection('🔲 窗口透明度', () => this.buildOpacityConfig());
-
-        // 显示/隐藏悬浮窗
-        if (this.isFloatingShown) {
-          Button('隐藏悬浮窗')
-            .fontSize(16)
-            .fontColor('#FFFFFF')
-            .backgroundColor('#FF6B6B')
-            .width('90%')
-            .height(52)
-            .borderRadius(26)
-            .margin({ bottom: 20 })
-            .onClick(() => this.hideFloatingWindow());
-        } else {
-          Button('显示悬浮窗')
-            .fontSize(16)
-            .fontColor('#FFFFFF')
-            .backgroundColor('#4FC3F7')
-            .width('90%')
-            .height(52)
-            .borderRadius(26)
-            .margin({ bottom: 20 })
-            .onClick(() => this.showFloatingWindow());
-        }
-
-        // 使用提示
-        this.buildTips();
-      }
-      .width('100%')
-      .alignItems(HorizontalAlign.Center);
-    }
-    .width('100%')
-    .height('100%')
-    .scrollBarWidth(4)
-    .backgroundColor('#1A1A1A');
+  private getModeIcon(mode: DisplayMode): string {
+    const icons: Record<DisplayMode, string> = {
+      'clock': '🕐',
+      'countdown': '⏱️',
+      'stopwatch': '⏲️',
+      'pomodoro': '🍅',
+      'worldclock': '🌍'
+    };
+    return icons[mode];
   }
 
-  @Builder
-  buildPreviewCard() {
-    Column() {
-      Text(this.previewTime)
-        .fontSize(36)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.getTheme().textColor)
-        .fontFamily('monospace')
-        .letterSpacing(2);
-      if (this.showDate) {
-        Text(this.previewDate)
-          .fontSize(14)
-          .fontColor(this.getTheme().subTextColor)
-          .margin({ top: 4 });
-      }
-    }
-    .width('90%')
-    .height(130)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor(this.getTheme().bgColor)
-    .borderRadius(16)
-    .border({ width: 1, color: this.getTheme().borderColor })
-    .shadow({ radius: 16, color: this.getTheme().shadowColor, offsetX: 2, offsetY: 6 })
-    .margin({ bottom: 28 });
-  }
-
-  @Builder
-  buildSection(title: string, contentBuilder: () => void) {
-    Column() {
-      Text(title)
-        .fontSize(18)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .width('90%')
-        .margin({ bottom: 10 });
-      contentBuilder();
-    }
-    .width('100%')
-    .margin({ bottom: 24 });
-  }
-
-  @Builder
-  buildThemeGrid() {
-    Grid() {
-      ForEach(ThemeManager.THEMES, (theme: ThemeStyle) => {
-        GridItem() {
-          Column({ space: 4 }) {
-            Text('12:34')
-              .fontSize(18)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(theme.textColor);
-          }
-          .width('100%')
-          .height('100%')
-          .justifyContent(FlexAlign.Center)
-          .backgroundColor(theme.bgColor)
-          .borderRadius(12)
-          .border({
-            width: this.currentTheme === theme.name ? 3 : 1,
-            color: this.currentTheme === theme.name ? '#4FC3F7' : theme.borderColor
-          });
-          Text(theme.label)
-            .fontSize(12)
-            .fontColor('#FFFFFF')
-            .margin({ top: 4 });
-        }
-        .height(80)
-        .onClick(() => this.selectTheme(theme.name));
-      }, (theme: ThemeStyle) => theme.name);
-    }
-    .columnsTemplate('1fr 1fr 1fr')
-    .rowsTemplate('1fr 1fr')
-    .columnsGap(10)
-    .rowsGap(10)
-    .width('90%')
-    .height(190)
-    .margin({ bottom: 4 });
-  }
-
-  @Builder
-  buildModeButtons() {
-    Row({ space: 8 }) {
-      ForEach(['clock', 'countdown', 'stopwatch', 'pomodoro', 'worldclock'] as DisplayMode[], (mode: DisplayMode) => {
-        Button(this.getModeShortLabel(mode))
-          .fontSize(12)
-          .fontColor('#FFFFFF')
-          .backgroundColor(this.currentMode === mode ? '#4FC3F7' : '#3A3A3A')
-          .height(40)
-          .layoutWeight(1)
-          .borderRadius(8)
-          .onClick(() => this.selectMode(mode));
-      }, (mode: DisplayMode) => mode);
-    }
-    .width('90%');
-  }
-
-  private getModeShortLabel(mode: DisplayMode): string {
+  private getModeLabel(mode: DisplayMode): string {
     const labels: Record<DisplayMode, string> = {
       'clock': '时钟',
       'countdown': '倒计时',
@@ -363,17 +208,231 @@ struct Index {
     return labels[mode];
   }
 
-  @Builder
-  buildCountdownConfig() {
-    Column() {
-      Row() {
-        Text(`倒计时 ${this.countdownMinutes} 分钟`)
-          .fontSize(14)
-          .fontColor('#FFFFFF')
-          .layoutWeight(1);
+  build() {
+    Stack() {
+      // 背景层
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(this.getBg());
+
+      Scroll() {
+        Column({ space: 16 }) {
+          this.buildHeader();
+          this.buildHeroPreview();
+          this.buildModeSelector();
+          this.buildThemeSection();
+          this.buildSettingsCard();
+
+          if (this.currentMode === 'countdown') {
+            this.buildCountdownCard();
+          }
+          if (this.currentMode === 'pomodoro') {
+            this.buildPomodoroCard();
+          }
+          if (this.currentMode === 'worldclock') {
+            this.buildWorldClockCard();
+          }
+
+          this.buildAlarmCard();
+          this.buildOpacityCard();
+          this.buildActionButton();
+          this.buildTips();
+        }
+        .width('100%')
+        .padding({ left: 16, right: 16, bottom: 40 });
       }
-      .width('90%')
-      .margin({ bottom: 8 });
+      .width('100%')
+      .height('100%')
+      .scrollBar(BarState.Off);
+    }
+    .width('100%')
+    .height('100%');
+  }
+
+  // === 头部 ===
+  @Builder
+  buildHeader() {
+    Row() {
+      Column({ space: 2 }) {
+        Text('悬浮时钟')
+          .fontSize(28)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.getTextPrimary());
+        Text('桌面悬浮 · 多模式切换 · 精致体验')
+          .fontSize(12)
+          .fontColor(this.getTextSecondary());
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1);
+
+      Column() {
+        Text('⏰')
+          .fontSize(36);
+      }
+      .width(56)
+      .height(56)
+      .backgroundColor(this.getCardBg())
+      .borderRadius(16)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .shadow({ radius: 8, color: this.getTheme().shadowColor, offsetX: 0, offsetY: 2 });
+    }
+    .width('100%')
+    .padding({ top: 48, bottom: 8 });
+  }
+
+  // === 预览卡片 ===
+  @Builder
+  buildHeroPreview() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column({ space: 6 }) {
+        Text(this.previewTime)
+          .fontSize(42)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.getTheme().textColor)
+          .fontFamily('HarmonyOS Sans, monospace')
+          .letterSpacing(3);
+
+        if (this.showDate) {
+          Text(this.previewDate)
+            .fontSize(14)
+            .fontColor(this.getTheme().subTextColor);
+        }
+
+        Row({ space: 8 }) {
+          Text(this.getModeIcon(this.currentMode))
+            .fontSize(14);
+          Text(this.getModeLabel(this.currentMode) + '模式')
+            .fontSize(12)
+            .fontColor(this.getTheme().subTextColor);
+        }
+        .margin({ top: 8 })
+        .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+        .backgroundColor(this.getTheme().borderColor)
+        .borderRadius(100);
+      }
+      .padding({ left: 24, right: 24, top: 24, bottom: 24 });
+    }
+    .width('100%')
+    .backgroundColor(this.getTheme().bgColor)
+    .borderRadius(24)
+    .border({ width: 1, color: this.getTheme().borderColor })
+    .shadow({
+      radius: 20,
+      color: this.getTheme().shadowColor,
+      offsetX: 0,
+      offsetY: 8
+    });
+  }
+
+  // === 模式选择器 ===
+  @Builder
+  buildModeSelector() {
+    Row({ space: 8 }) {
+      ForEach(['clock', 'countdown', 'stopwatch', 'pomodoro', 'worldclock'] as DisplayMode[], (mode: DisplayMode) => {
+        Column({ space: 4 }) {
+          Text(this.getModeIcon(mode))
+            .fontSize(20);
+          Text(this.getModeLabel(mode))
+            .fontSize(11)
+            .fontColor(this.currentMode === mode ? this.getPrimary() : this.getTextSecondary());
+        }
+        .layoutWeight(1)
+        .height(68)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .backgroundColor(this.currentMode === mode ? this.getCardBg() : 'transparent')
+        .borderRadius(14)
+        .border({
+          width: this.currentMode === mode ? 1.5 : 0,
+          color: this.currentMode === mode ? this.getPrimary() : 'transparent'
+        })
+        .onClick(() => this.selectMode(mode));
+      }, (mode: DisplayMode) => mode);
+    }
+    .width('100%')
+    .padding(6)
+    .backgroundColor(this.getCardBg())
+    .borderRadius(18)
+    .border({ width: 1, color: this.getBorder() });
+  }
+
+  // === 主题选择 ===
+  @Builder
+  buildThemeSection() {
+    Column({ space: 12 }) {
+      this.buildSectionTitle('🎨 主题风格');
+
+      Grid() {
+        ForEach(ThemeManager.THEMES, (theme: ThemeStyle, index: number) => {
+          GridItem() {
+            Column({ space: 6 }) {
+              Row() {
+                Text('12:34')
+                  .fontSize(15)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(theme.textColor);
+              }
+              .width('100%')
+              .height(52)
+              .justifyContent(FlexAlign.Center)
+              .backgroundColor(theme.bgColor)
+              .borderRadius(10)
+              .border({
+                width: this.currentTheme === theme.name ? 2 : 1,
+                color: this.currentTheme === theme.name ? this.getPrimary() : theme.borderColor
+              });
+
+              Text(theme.label)
+                .fontSize(11)
+                .fontColor(this.getTextSecondary());
+            }
+            .width('100%')
+            .onClick(() => this.selectTheme(theme.name));
+          }
+        }, (theme: ThemeStyle) => theme.name);
+      }
+      .columnsTemplate('1fr 1fr 1fr 1fr')
+      .rowsGap(12)
+      .columnsGap(10)
+      .width('100%');
+    }
+    .width('100%');
+  }
+
+  // === 设置卡片 ===
+  @Builder
+  buildSettingsCard() {
+    Column() {
+      this.buildListRow('📅', '显示日期', this.showDate, true, () => this.toggleShowDate());
+      this.buildDivider();
+      this.buildListRow('🪟', '桌面小组件', false, false, undefined, '长按桌面添加');
+    }
+    .width('100%')
+    .backgroundColor(this.getCardBg())
+    .borderRadius(18)
+    .border({ width: 1, color: this.getBorder() });
+  }
+
+  // === 倒计时卡片 ===
+  @Builder
+  buildCountdownCard() {
+    Column({ space: 14 }) {
+      this.buildSectionTitle('⏱️ 倒计时设置');
+
+      Row() {
+        Text(`${this.countdownMinutes} 分钟`)
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.getTextPrimary())
+          .layoutWeight(1);
+        Text('1-60 min')
+          .fontSize(12)
+          .fontColor(this.getTextSecondary());
+      }
+      .width('100%');
+
       Slider({
         value: this.countdownMinutes,
         min: 1,
@@ -381,199 +440,256 @@ struct Index {
         step: 1,
         style: SliderStyle.OutSet
       })
-        .blockColor('#4FC3F7')
-        .selectedColor('#4FC3F7')
-        .trackColor('#555555')
+        .blockColor(this.getPrimary())
+        .selectedColor(this.getPrimary())
+        .trackColor(this.getBorder())
+        .blockSize(20)
+        .trackThickness(6)
         .onChange((v: number) => this.onCountdownMinutesChanged(v));
     }
-    .width('100%');
+    .width('100%')
+    .padding(16)
+    .backgroundColor(this.getCardBg())
+    .borderRadius(18)
+    .border({ width: 1, color: this.getBorder() });
+  }
+
+  // === 番茄钟卡片 ===
+  @Builder
+  buildPomodoroCard() {
+    Column({ space: 16 }) {
+      this.buildSectionTitle('🍅 番茄钟设置');
+
+      // 工作 + 短休息
+      Row({ space: 16 }) {
+        Column({ space: 6 }) {
+          this.buildStatItem('工作', `${this.pomodoroWorkMin}min`, '#F87171');
+          Slider({ value: this.pomodoroWorkMin, min: 5, max: 60, step: 1, style: SliderStyle.InSet })
+            .blockColor('#F87171').selectedColor('#F87171').trackColor(this.getBorder())
+            .blockSize(16).trackThickness(4)
+            .onChange((v: number) => this.onPomodoroWorkChanged(v));
+        }
+        .layoutWeight(1);
+
+        Column({ space: 6 }) {
+          this.buildStatItem('短休', `${this.pomodoroBreakMin}min`, '#4ADE80');
+          Slider({ value: this.pomodoroBreakMin, min: 1, max: 30, step: 1, style: SliderStyle.InSet })
+            .blockColor('#4ADE80').selectedColor('#4ADE80').trackColor(this.getBorder())
+            .blockSize(16).trackThickness(4)
+            .onChange((v: number) => this.onPomodoroBreakChanged(v));
+        }
+        .layoutWeight(1);
+      }
+      .width('100%');
+
+      // 长休息 + 轮数
+      Row({ space: 16 }) {
+        Column({ space: 6 }) {
+          this.buildStatItem('长休', `${this.pomodoroLongBreakMin}min`, '#60A5FA');
+          Slider({ value: this.pomodoroLongBreakMin, min: 5, max: 60, step: 1, style: SliderStyle.InSet })
+            .blockColor('#60A5FA').selectedColor('#60A5FA').trackColor(this.getBorder())
+            .blockSize(16).trackThickness(4)
+            .onChange((v: number) => this.onPomodoroLongBreakChanged(v));
+        }
+        .layoutWeight(1);
+
+        Column({ space: 6 }) {
+          this.buildStatItem('轮数', `${this.pomodoroRounds}轮`, '#FBBF24');
+          Slider({ value: this.pomodoroRounds, min: 1, max: 8, step: 1, style: SliderStyle.InSet })
+            .blockColor('#FBBF24').selectedColor('#FBBF24').trackColor(this.getBorder())
+            .blockSize(16).trackThickness(4)
+            .onChange((v: number) => this.onPomodoroRoundsChanged(v));
+        }
+        .layoutWeight(1);
+      }
+      .width('100%');
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor(this.getCardBg())
+    .borderRadius(18)
+    .border({ width: 1, color: this.getBorder() });
   }
 
   @Builder
-  buildPomodoroConfig() {
-    Column({ space: 16 }) {
-      Row() {
-        Text(`工作时长 ${this.pomodoroWorkMin} 分钟`)
-          .fontSize(13)
-          .fontColor('#FFFFFF')
-          .layoutWeight(1);
-        Text(`短休息 ${this.pomodoroBreakMin} 分钟`)
-          .fontSize(13)
-          .fontColor('#FFFFFF');
-      }
-      .width('90%');
-
-      Row() {
-        Slider({
-          value: this.pomodoroWorkMin, min: 5, max: 60, step: 1, style: SliderStyle.OutSet
-        })
-          .blockColor('#E57373').selectedColor('#E57373').trackColor('#555555')
-          .layoutWeight(1)
-          .onChange((v: number) => this.onPomodoroWorkChanged(v));
-        Slider({
-          value: this.pomodoroBreakMin, min: 1, max: 30, step: 1, style: SliderStyle.OutSet
-        })
-          .blockColor('#81C784').selectedColor('#81C784').trackColor('#555555')
-          .layoutWeight(1)
-          .onChange((v: number) => this.onPomodoroBreakChanged(v));
-      }
-      .width('90%')
-      .columnsGap(12);
-
-      Row() {
-        Text(`长休息 ${this.pomodoroLongBreakMin} 分钟`)
-          .fontSize(13)
-          .fontColor('#FFFFFF')
-          .layoutWeight(1);
-        Text(`轮数 ${this.pomodoroRounds}`)
-          .fontSize(13)
-          .fontColor('#FFFFFF');
-      }
-      .width('90%');
-
-      Row() {
-        Slider({
-          value: this.pomodoroLongBreakMin, min: 5, max: 60, step: 1, style: SliderStyle.OutSet
-        })
-          .blockColor('#64B5F6').selectedColor('#64B5F6').trackColor('#555555')
-          .layoutWeight(1)
-          .onChange((v: number) => this.onPomodoroLongBreakChanged(v));
-        Slider({
-          value: this.pomodoroRounds, min: 1, max: 8, step: 1, style: SliderStyle.OutSet
-        })
-          .blockColor('#FFB74D').selectedColor('#FFB74D').trackColor('#555555')
-          .layoutWeight(1)
-          .onChange((v: number) => this.onPomodoroRoundsChanged(v));
-      }
-      .width('90%')
-      .columnsGap(12);
+  buildStatItem(label: string, value: string, color: string) {
+    Row() {
+      Text(label)
+        .fontSize(12)
+        .fontColor(this.getTextSecondary())
+        .layoutWeight(1);
+      Text(value)
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(color);
     }
     .width('100%');
   }
 
+  // === 世界时钟卡片 ===
   @Builder
-  buildWorldClockConfig() {
-    Column() {
-      Text('已选城市（最多 4 个）')
-        .fontSize(13)
-        .fontColor('#888888')
-        .width('90%')
-        .margin({ bottom: 8 });
+  buildWorldClockCard() {
+    Column({ space: 12 }) {
+      this.buildSectionTitle('🌍 世界时钟（最多4个）');
 
       ForEach(this.getSelectedCities(), (city: CityTime) => {
         Row() {
-          Text(`${city.flag} ${city.name}`)
-            .fontSize(13)
-            .fontColor(this.getTheme().textColor)
-            .layoutWeight(1);
-          Text(`${city.offsetHours >= 0 ? '+' : ''}${city.offsetHours}:${String(Math.abs(city.offsetMinutes)).padStart(2, '0')}`)
-            .fontSize(12)
-            .fontColor(this.getTheme().subTextColor);
+          Text(city.flag)
+            .fontSize(18)
+            .margin({ right: 8 });
+
+          Column({ space: 2 }) {
+            Text(city.name)
+              .fontSize(14)
+              .fontColor(this.getTextPrimary());
+            Text(`${city.offsetHours >= 0 ? 'UTC+' : 'UTC'}${city.offsetHours}:${String(Math.abs(city.offsetMinutes)).padStart(2, '0')}`)
+              .fontSize(11)
+              .fontColor(this.getTextSecondary());
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1);
+
+          Text('✓')
+            .fontSize(14)
+            .fontColor(this.getPrimary());
         }
-        .width('90%')
-        .padding({ top: 4, bottom: 4 });
+        .width('100%')
+        .padding({ top: 10, bottom: 10 })
+        .onClick(() => this.toggleCity(city.id));
       }, (city: CityTime) => city.id);
 
-      Text('可选城市')
-        .fontSize(13)
-        .fontColor('#888888')
-        .width('90%')
-        .margin({ top: 12, bottom: 8 });
+      this.buildDivider();
+
+      Text('添加更多城市')
+        .fontSize(12)
+        .fontColor(this.getTextSecondary())
+        .width('100%')
+        .textAlign(TextAlign.Start)
+        .margin({ top: 4, bottom: 4 });
 
       Flex({ wrap: FlexWrap.Wrap }) {
         ForEach(WorldClockData.CITIES, (city: CityTime) => {
+          if (this.selectedCityIds.includes(city.id)) {
+            return;
+          }
           Text(`${city.flag} ${city.name}`)
             .fontSize(12)
-            .fontColor(this.selectedCityIds.includes(city.id) ? '#4FC3F7' : '#888888')
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .backgroundColor(this.selectedCityIds.includes(city.id) ? 'rgba(79,195,247,0.2)' : 'rgba(255,255,255,0.05)')
-            .borderRadius(6)
-            .margin({ right: 6, bottom: 4 })
+            .fontColor(this.getTextPrimary())
+            .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+            .backgroundColor(this.getBg())
+            .borderRadius(8)
+            .margin({ right: 6, bottom: 6 })
             .onClick(() => this.toggleCity(city.id));
         }, (city: CityTime) => city.id);
       }
-      .width('90%');
+      .width('100%');
     }
-    .width('100%');
+    .width('100%')
+    .padding(16)
+    .backgroundColor(this.getCardBg())
+    .borderRadius(18)
+    .border({ width: 1, color: this.getBorder() });
   }
 
+  // === 闹钟卡片 ===
   @Builder
-  buildAlarmConfig() {
-    Row() {
-      Text(`闹钟 ${String(this.alarmHour).padStart(2, '0')}:${String(this.alarmMinute).padStart(2, '0')}`)
-        .fontSize(20)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF');
+  buildAlarmCard() {
+    Column({ space: 14 }) {
+      this.buildSectionTitle('🔔 闹钟');
 
-      Row({ space: 12 }) {
-        if (this.showAlarmPicker) {
-          Row({ space: 4 }) {
-            Text('时')
-              .fontSize(12)
-              .fontColor('#888888');
-            TextInput({ text: String(this.alarmHour) })
-              .width(48)
-              .height(36)
-              .type(InputType.Number)
-              .fontSize(16)
-              .textAlign(TextAlign.Center)
-              .backgroundColor('#2A2A2A')
-              .borderRadius(6)
-              .onChange((v: string) => {
-                const h = Math.max(0, Math.min(23, parseInt(v) || 0));
-                this.alarmHour = h;
-              });
-
-            Text('分')
-              .fontSize(12)
-              .fontColor('#888888');
-            TextInput({ text: String(this.alarmMinute) })
-              .width(48)
-              .height(36)
-              .type(InputType.Number)
-              .fontSize(16)
-              .textAlign(TextAlign.Center)
-              .backgroundColor('#2A2A2A')
-              .borderRadius(6)
-              .onChange((v: string) => {
-                const m = Math.max(0, Math.min(59, parseInt(v) || 0));
-                this.alarmMinute = m;
-              });
-
-            Text('确定')
-              .fontSize(13)
-              .fontColor('#4FC3F7')
-              .padding({ left: 8, right: 8 })
-              .onClick(() => this.setAlarm());
-          }
-        } else {
-          Button('设置闹钟')
-            .fontSize(13)
-            .fontColor('#FFFFFF')
-            .backgroundColor('#3A3A3A')
-            .height(36)
-            .borderRadius(8)
-            .onClick(() => this.showAlarmPicker = true);
+      Row() {
+        Row({ space: 6 }) {
+          Text('⏰')
+            .fontSize(20);
+          Text(`${String(this.alarmHour).padStart(2, '0')}:${String(this.alarmMinute).padStart(2, '0')}`)
+            .fontSize(22)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.getTextPrimary());
         }
+        .layoutWeight(1);
 
         Toggle({ type: ToggleType.Switch, isOn: this.alarmEnabled })
-          .selectedColor('#4FC3F7')
+          .selectedColor(this.getPrimary())
           .switchPointColor('#FFFFFF')
           .onChange(() => this.toggleAlarm());
       }
+      .width('100%');
+
+      if (this.showAlarmPicker) {
+        Row({ space: 10 }) {
+          TextInput({ text: String(this.alarmHour) })
+            .layoutWeight(1)
+            .height(44)
+            .type(InputType.Number)
+            .fontSize(18)
+            .textAlign(TextAlign.Center)
+            .backgroundColor(this.getBg())
+            .borderRadius(10)
+            .onChange((v: string) => {
+              const h = Math.max(0, Math.min(23, parseInt(v) || 0));
+              this.alarmHour = h;
+            });
+
+          Text(':')
+            .fontSize(20)
+            .fontColor(this.getTextSecondary());
+
+          TextInput({ text: String(this.alarmMinute) })
+            .layoutWeight(1)
+            .height(44)
+            .type(InputType.Number)
+            .fontSize(18)
+            .textAlign(TextAlign.Center)
+            .backgroundColor(this.getBg())
+            .borderRadius(10)
+            .onChange((v: string) => {
+              const m = Math.max(0, Math.min(59, parseInt(v) || 0));
+              this.alarmMinute = m;
+            });
+
+          Button('保存')
+            .fontSize(13)
+            .fontColor('#FFFFFF')
+            .backgroundColor(this.getPrimary())
+            .height(44)
+            .borderRadius(10)
+            .onClick(() => this.setAlarm());
+        }
+        .width('100%');
+      } else {
+        Text('修改时间')
+          .fontSize(13)
+          .fontColor(this.getPrimary())
+          .onClick(() => {
+            this.showAlarmPicker = true;
+          });
+      }
     }
-    .width('90%')
-    .margin({ bottom: 8 });
+    .width('100%')
+    .padding(16)
+    .backgroundColor(this.getCardBg())
+    .borderRadius(18)
+    .border({ width: 1, color: this.getBorder() });
   }
 
+  // === 透明度卡片 ===
   @Builder
-  buildOpacityConfig() {
-    Row() {
-      Text(`${this.windowOpacity}%`)
-        .fontSize(14)
-        .fontColor('#FFFFFF')
-        .fontWeight(FontWeight.Medium)
-        .margin({ right: 12 });
+  buildOpacityCard() {
+    Column({ space: 14 }) {
+      this.buildSectionTitle('🔲 窗口透明度');
+
+      Row() {
+        Text(`${this.windowOpacity}%`)
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.getTextPrimary())
+          .layoutWeight(1);
+        Text('20% - 100%')
+          .fontSize(12)
+          .fontColor(this.getTextSecondary());
+      }
+      .width('100%');
+
       Slider({
         value: this.windowOpacity,
         min: 20,
@@ -581,26 +697,145 @@ struct Index {
         step: 5,
         style: SliderStyle.OutSet
       })
-        .blockColor('#4FC3F7')
-        .selectedColor('#4FC3F7')
-        .trackColor('#555555')
-        .layoutWeight(1)
+        .blockColor(this.getPrimary())
+        .selectedColor(this.getPrimary())
+        .trackColor(this.getBorder())
+        .blockSize(20)
+        .trackThickness(6)
         .onChange((v: number) => this.onOpacityChanged(v));
     }
-    .width('90%');
+    .width('100%')
+    .padding(16)
+    .backgroundColor(this.getCardBg())
+    .borderRadius(18)
+    .border({ width: 1, color: this.getBorder() });
+  }
+
+  // === 主操作按钮 ===
+  @Builder
+  buildActionButton() {
+    if (this.isFloatingShown) {
+      Button() {
+        Row({ space: 8 }) {
+          Text('👁')
+            .fontSize(18);
+          Text('隐藏悬浮窗')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#FFFFFF');
+        }
+      }
+      .width('100%')
+      .height(56)
+      .backgroundColor('#F87171')
+      .borderRadius(28)
+      .shadow({ radius: 12, color: 'rgba(248,113,113,0.3)', offsetX: 0, offsetY: 4 })
+      .margin({ top: 8 })
+      .onClick(() => this.hideFloatingWindow());
+    } else {
+      Button() {
+        Row({ space: 8 }) {
+          Text('🚀')
+            .fontSize(18);
+          Text('显示悬浮窗')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#FFFFFF');
+        }
+      }
+      .width('100%')
+      .height(56)
+      .backgroundColor(this.getPrimary())
+      .borderRadius(28)
+      .shadow({ radius: 12, color: this.getTheme().colors.primary + '4D', offsetX: 0, offsetY: 4 })
+      .margin({ top: 8 })
+      .onClick(() => this.showFloatingWindow());
+    }
+  }
+
+  // === 使用提示 ===
+  @Builder
+  buildTips() {
+    Column({ space: 8 }) {
+      Text('💡 使用小贴士')
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.getTextSecondary())
+        .width('100%')
+        .margin({ top: 8, bottom: 4 });
+
+      this.buildTipRow('长按悬浮窗可打开设置菜单');
+      this.buildTipRow('单击可启动/暂停倒计时、秒表、番茄钟');
+      this.buildTipRow('拖动悬浮窗可自由改变位置');
+      this.buildTipRow('桌面长按空白处可添加时钟小组件');
+    }
+    .width('100%')
+    .margin({ top: 8 });
   }
 
   @Builder
-  buildTips() {
-    Column({ space: 4 }) {
-      Text('💡 使用提示').fontSize(14).fontColor('#888888').width('90%').margin({ top: 16, bottom: 8 });
-      Text('• 悬浮窗内长按可打开设置菜单').fontSize(12).fontColor('#666666').width('90%');
-      Text('• 单击可启动/暂停倒计时、秒表、番茄钟').fontSize(12).fontColor('#666666').width('90%');
-      Text('• 拖动悬浮窗可自由改变位置').fontSize(12).fontColor('#666666').width('90%');
-      Text('• 番茄钟：工作→短休息→...→长休息循环').fontSize(12).fontColor('#666666').width('90%');
-      Text('• 世界时钟自动计算各城市当前时间').fontSize(12).fontColor('#666666').width('90%');
+  buildTipRow(text: string) {
+    Row({ space: 8 }) {
+      Circle()
+        .width(4)
+        .height(4)
+        .fill(this.getPrimary());
+
+      Text(text)
+        .fontSize(12)
+        .fontColor(this.getTextSecondary());
     }
     .width('100%')
-    .margin({ bottom: 50 });
+    .alignItems(VerticalAlign.Center);
+  }
+
+  // === 通用组件 ===
+  @Builder
+  buildSectionTitle(title: string) {
+    Text(title)
+      .fontSize(16)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(this.getTextPrimary())
+      .width('100%');
+  }
+
+  @Builder
+  buildListRow(icon: string, title: string, value: boolean, showToggle: boolean, onToggle?: () => void, subText?: string) {
+    Row() {
+      Text(icon)
+        .fontSize(18)
+        .margin({ right: 12 });
+
+      Text(title)
+        .fontSize(15)
+        .fontColor(this.getTextPrimary())
+        .layoutWeight(1);
+
+      if (subText !== undefined) {
+        Text(subText)
+          .fontSize(12)
+          .fontColor(this.getTextSecondary());
+      }
+
+      if (showToggle) {
+        Toggle({ type: ToggleType.Switch, isOn: value })
+          .selectedColor(this.getPrimary())
+          .switchPointColor('#FFFFFF')
+          .onChange(() => {
+            if (onToggle) onToggle();
+          });
+      }
+    }
+    .width('100%')
+    .height(56)
+    .padding({ left: 16, right: 16 });
+  }
+
+  @Builder
+  buildDivider() {
+    Divider()
+      .strokeWidth(0.5)
+      .color(this.getDivider())
+      .margin({ left: 40 });
   }
 }

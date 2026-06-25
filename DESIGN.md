@@ -23,6 +23,7 @@
 - [17. 透明度调节](#17-透明度调节)
 - [18. 桌面小组件](#18-桌面小组件)
 - [19. 自定义主题](#19-自定义主题)
+- [20. UI 设计规范](#20-ui-设计规范)
 
 ---
 
@@ -441,37 +442,87 @@ clock → countdown → stopwatch → clock ...
 
 ## 8. 主题系统
 
-### 8.1 预设主题
+### 8.1 设计理念
 
-| 主题名 | 说明 | 主色调 |
-|--------|------|--------|
-| `dark` | 经典深色 | 黑底白字 |
-| `light` | 清爽浅色 | 白底深灰字 |
-| `ocean` | 海洋蓝 | 深蓝背景 + 浅蓝文字 |
-| `sunset` | 日落橙 | 深棕红背景 + 暖橙文字 |
-| `forest` | 森林绿 | 深绿背景 + 浅绿文字 |
-| `mono` | 极简黑白 | 深灰背景 + 白色文字 |
+遵循 **HarmonyOS Design** 设计规范，采用统一的色彩令牌（Color Token）体系，确保视觉一致性和可扩展性。每套主题都包含完整的色彩系统，涵盖主色、背景色、文字色、边框色、功能色等。
 
-### 8.2 主题切换机制
+### 8.2 色彩令牌体系
+
+```typescript
+interface ThemeColorToken {
+  primary: string;           // 主色
+  primaryLight: string;      // 主色-亮
+  primaryDark: string;       // 主色-暗
+  onPrimary: string;         // 主色上的文字色
+  bgPrimary: string;         // 主要背景色
+  bgSecondary: string;       // 次要背景色（卡片、分组）
+  bgElevated: string;        // 悬浮层背景色
+  textPrimary: string;       // 主要文字色
+  textSecondary: string;     // 次要文字色
+  textTertiary: string;      // 三级文字色（提示、辅助）
+  borderColor: string;       // 边框色
+  dividerColor: string;      // 分割线色
+  shadowColor: string;       // 阴影色
+  success: string;           // 成功色
+  warning: string;           // 警告色
+  danger: string;            // 危险/错误色
+}
+```
+
+### 8.3 预设主题（8套精选）
+
+| 主题名 | 说明 | 风格 | 主色调 |
+|--------|------|------|--------|
+| `harmony_dark` | 鸿蒙夜曲 | 深色 | 鸿蒙蓝 `#007DFF` |
+| `harmony_light` | 晨曦微光 | 浅色 | 鸿蒙蓝 `#007DFF` |
+| `ocean_deep` | 深海低语 | 深色 | 天空蓝 `#0EA5E9` |
+| `forest_green` | 林间晨光 | 深色 | 翡翠绿 `#10B981` |
+| `sunset_warm` | 暮光暖韵 | 深色 | 落日橙 `#F97316` |
+| `purple_dream` | 紫雾梦境 | 深色 | 紫罗兰 `#8B5CF6` |
+| `mono_elegant` | 极致黑白 | 深色 | 纯白 `#FFFFFF` |
+| `rose_gold` | 玫瑰金调 | 浅色 | 玫瑰金 `#CD7F5A` |
+
+### 8.4 主题切换机制
 
 1. `ThemeManager.THEMES` 存储所有预设主题
 2. `PreferencesUtil.setTheme()` 持久化用户选择
 3. 悬浮窗页面 `@State themeName` 响应式驱动 UI 重绘
-4. 所有颜色从 `getTheme()` 方法动态获取
+4. 所有颜色从 `getTheme().colors.xxx` 令牌统一获取
+5. 组件通过 `@Prop theme: ThemeStyle` 接收主题对象
 
-### 8.3 扩展方式
+### 8.5 扩展方式
 
-新增主题只需在 `ThemeManager.THEMES` 数组中添加一项：
+新增主题只需在 `ThemeManager.THEMES` 数组中添加一项，提供完整的色彩令牌：
 
 ```typescript
 {
-  name: 'neon',
-  label: '霓虹紫',
-  bgColor: 'rgba(40, 10, 60, 0.85)',
-  textColor: '#F3E5F5',
-  subTextColor: 'rgba(243, 229, 245, 0.7)',
-  borderColor: 'rgba(200, 100, 255, 0.3)',
-  shadowColor: 'rgba(40, 10, 60, 0.4)'
+  name: 'neon_cyber',
+  label: '赛博霓虹',
+  isDark: true,
+  bgColor: 'rgba(10, 5, 25, 0.92)',
+  textColor: '#F0ABFC',
+  subTextColor: 'rgba(240, 171, 252, 0.65)',
+  borderColor: 'rgba(217, 70, 239, 0.2)',
+  shadowColor: 'rgba(30, 0, 50, 0.6)',
+  primaryColor: '#D946EF',
+  colors: {
+    primary: '#D946EF',
+    primaryLight: '#E879F9',
+    primaryDark: '#A21CAF',
+    onPrimary: '#FFFFFF',
+    bgPrimary: '#0A0519',
+    bgSecondary: '#120826',
+    bgElevated: '#1A0D35',
+    textPrimary: '#F0ABFC',
+    textSecondary: 'rgba(240,171,252,0.65)',
+    textTertiary: 'rgba(240,171,252,0.35)',
+    borderColor: 'rgba(217,70,239,0.2)',
+    dividerColor: 'rgba(217,70,239,0.08)',
+    shadowColor: 'rgba(30,0,50,0.6)',
+    success: '#4ADE80',
+    warning: '#FACC15',
+    danger: '#F87171'
+  }
 }
 ```
 
@@ -1052,6 +1103,140 @@ private adjustAlpha(hexColor: string, alpha: number): string {
 
 ---
 
+## 20. UI 设计规范
+
+### 20.1 设计原则
+
+遵循 **HarmonyOS Design** 设计语言，核心原则：
+
+| 原则 | 说明 |
+|------|------|
+| **一致性** | 统一的色彩、字体、间距、圆角规范 |
+| **层次感** | 通过色彩、字号、阴影建立清晰的视觉层级 |
+| **轻量化** | 悬浮窗保持小巧精致，不抢夺用户注意力 |
+| **响应式** | 主题切换实时响应，所有元素同步更新 |
+| **动效** | 适度的微动效提升质感，不炫技 |
+
+### 20.2 色彩规范
+
+#### 文字层级
+- **主要文字**：`textPrimary` - 标题、时间显示等核心信息
+- **次要文字**：`textSecondary` - 副标题、说明文字
+- **三级文字**：`textTertiary` - 提示、标签、辅助信息
+
+#### 背景层级
+- **页面背景**：`bgPrimary` - 最底层背景
+- **卡片背景**：`bgElevated` - 主设置页卡片
+- **分组背景**：`bgSecondary` - 菜单分组、按钮背景
+
+#### 功能色
+- **成功**：`success` - 绿色，完成、开启状态
+- **警告**：`warning` - 橙色，提醒、暂停状态
+- **危险**：`danger` - 红色，错误、倒计时最后10秒
+
+### 20.3 字体规范
+
+| 用途 | 字号 | 字重 | 示例 |
+|------|------|------|------|
+| 悬浮窗时间 | 26-30vp | Bold | 时钟、倒计时主显示 |
+| 页面大标题 | 28vp | Bold | 应用名称 |
+| 章节标题 | 16vp | Medium | 设置卡片标题 |
+| 正文/列表项 | 14-15vp | Regular | 菜单项、设置项 |
+| 辅助文字 | 11-12vp | Regular | 日期、说明、标签 |
+| 提示文字 | 10vp | Regular | 收起提示、状态 |
+
+**字体族**：`HarmonyOS Sans, monospace`（时间数字用等宽字体）
+
+### 20.4 间距规范
+
+采用 4vp 基准网格系统：
+
+| 间距 | 用途 |
+|------|------|
+| 4vp | 最小间距（图标与文字、标签之间） |
+| 8vp | 小组件内间距、紧凑列表项 |
+| 12vp | 卡片内边距、模块间小间距 |
+| 16vp | 卡片内边距（大）、页面左右边距 |
+| 24vp | 大模块间距 |
+
+### 20.5 圆角规范
+
+| 圆角大小 | 用途 |
+|----------|------|
+| 4-6vp | 小按钮、小组件、标签 |
+| 8-10vp | 菜单分组、输入框 |
+| 16-18vp | 设置卡片、模式选择器 |
+| 20-24vp | 悬浮窗、预览卡片、大按钮 |
+| 100vp | 胶囊标签、圆形按钮 |
+
+### 20.6 卡片设计
+
+悬浮窗和设置页卡片遵循统一的卡片规范：
+
+```
+┌─────────────────────────────┐
+│  卡片内边距 16-24vp         │
+│                             │
+│  ┌─────────────────────┐   │
+│  │  内容区域            │   │
+│  └─────────────────────┘   │
+│                             │
+└─────────────────────────────┘
+  圆角：18-24vp
+  边框：1vp borderColor
+  阴影：radius 16-20vp, offsetY 6-8vp
+  背景：bgElevated / bgColor
+```
+
+### 20.7 菜单设计
+
+悬浮窗设置菜单采用分组式设计：
+
+- **顶部模式标签**：胶囊形状，显示当前模式图标和名称
+- **菜单项分组**：每组有独立的背景（bgSecondary）和圆角
+- **菜单项**：图标 + 文字 + 副文字/箭头，高度 32vp
+- **分隔线**：细分割线，颜色 dividerColor
+- **操作区**：关闭按钮使用 danger 色突出
+
+### 20.8 进度条设计
+
+番茄钟等进度条样式：
+
+- **轨道**：4vp 高度，bgSecondary 背景色，圆角 2vp
+- **进度**：4vp 高度，主题色/功能色，圆角 2vp
+- **进度指示圆点**：5vp 直径，已完成填充主色，未完成填充 bgSecondary
+
+### 20.9 按钮设计
+
+#### 主按钮
+- 高度：56vp
+- 圆角：28vp（全圆角）
+- 背景：primary 主色
+- 文字：白色，16vp，Medium
+- 阴影：主色半透明，offsetY 4vp
+
+#### 次按钮（文字按钮）
+- 内边距：水平 8vp，垂直 4vp
+- 圆角：8vp
+- 背景：bgSecondary
+- 文字：textPrimary，11-12vp
+
+#### 开关 Toggle
+- 使用系统 Toggle 组件
+- 选中色：primary 主色
+- 滑块色：白色
+
+### 20.10 组件化设计
+
+所有 UI 组件遵循以下设计原则：
+
+1. **单一职责**：每个组件只负责一个功能的显示
+2. **主题驱动**：所有颜色通过 `theme.colors.xxx` 获取，不写死颜色值
+3. **属性受控**：状态由父组件管理（@Link / @Prop），组件只负责展示
+4. **可复用**：组件不依赖具体业务逻辑，可独立使用
+
+---
+
 ## 附录：功能演进
 
 | 功能 | 状态 |
@@ -1070,5 +1255,5 @@ private adjustAlpha(hexColor: string, alpha: number): string {
 
 ---
 
-*文档版本：v2.0*
-*最后更新：2026-06-25*
+*文档版本：v3.0*
+*最后更新：2026-10-24*

@@ -40,18 +40,22 @@ export struct StopwatchWidget {
   }
 
   build() {
-    Column({ space: 4 }) {
+    Column({ space: 2 }) {
       Text(TimeFormatter.formatStopwatch(this.elapsedMs))
-        .fontSize(26)
+        .fontSize(28)
         .fontWeight(FontWeight.Bold)
-        .fontColor(this.theme.textColor)
+        .fontColor(this.theme.colors.textPrimary)
         .fontFamily('HarmonyOS Sans, monospace')
         .letterSpacing(1)
-        .margin({ top: 4 });
+        .lineHeight(34);
 
-      Text('秒表')
-        .fontSize(11)
-        .fontColor(this.theme.subTextColor);
+      Row({ space: 4 }) {
+        Text('⏲')
+          .fontSize(10);
+        Text('秒表')
+          .fontSize(11)
+          .fontColor(this.theme.colors.textSecondary);
+      }
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center);

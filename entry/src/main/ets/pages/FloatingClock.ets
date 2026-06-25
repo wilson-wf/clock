@@ -12,22 +12,19 @@ export type DisplayMode = 'clock' | 'countdown' | 'stopwatch' | 'pomodoro' | 'wo
 @Entry
 @Component
 struct FloatingClock {
-  @State themeName: string = 'dark';
+  @State themeName: string = 'harmony_dark';
   @State mode: DisplayMode = 'clock';
   @State showDate: boolean = true;
   @State showMenu: boolean = false;
   @State windowOpacity: number = 75;
 
-  // 倒计时
   @State countdownIsRunning: boolean = false;
   @State countdownRemaining: number = 300;
   @State countdownTotal: number = 300;
 
-  // 秒表
   @State stopwatchIsRunning: boolean = false;
   @State stopwatchElapsed: number = 0;
 
-  // 番茄钟
   @State pomodoroIsRunning: boolean = false;
   @State pomodoroPhase: import('../components/PomodoroWidget').PomodoroPhase = 'work';
   @State pomodoroCompleted: number = 0;
@@ -37,7 +34,6 @@ struct FloatingClock {
   @State pomodoroLongBreakMin: number = 15;
   @State pomodoroRounds: number = 4;
 
-  // 闹钟
   @State alarmHour: number = 0;
   @State alarmMinute: number = 0;
   @State alarmEnabled: boolean = false;
@@ -50,7 +46,9 @@ struct FloatingClock {
   private movedDuringDrag: boolean = false;
 
   async aboutToAppear(): Promise<void> {
-    this.themeName = await PreferencesUtil.getTheme();
+    const savedTheme = await PreferencesUtil.getTheme();
+    const existing = ThemeManager.THEMES.find(t => t.name === savedTheme);
+    this.themeName = existing ? savedTheme : 'harmony_dark';
     this.mode = (await PreferencesUtil.getMode()) as DisplayMode;
     this.showDate = await PreferencesUtil.getShowDate();
     this.windowOpacity = await PreferencesUtil.getWindowOpacity();
@@ -94,6 +92,22 @@ struct FloatingClock {
     return ThemeManager.getTheme(this.themeName);
   }
 
+  private getPrimary(): string {
+    return this.getTheme().colors.primary;
+  }
+
+  private getSuccess(): string {
+    return this.getTheme().colors.success;
+  }
+
+  private getDivider(): string {
+    return this.getTheme().colors.dividerColor;
+  }
+
+  private getTextSecondary(): string {
+    return this.getTheme().colors.textSecondary;
+  }
+
   private async cycleTheme(): Promise<void> {
     const themes = ThemeManager.THEMES;
     const idx = themes.findIndex((t) => t.name === this.themeName);
@@ -126,6 +140,10 @@ struct FloatingClock {
   }
 
   private handleSingleClick(): void {
+    if (this.showMenu) {
+      this.showMenu = false;
+      return;
+    }
     if (this.mode === 'countdown') {
       if (this.countdownRemaining <= 0) {
         this.countdownRemaining = this.countdownTotal;
@@ -186,7 +204,7 @@ struct FloatingClock {
 
   private getModeLabel(): string {
     const labels: Record<DisplayMode, string> = {
-      'clock': '实时时钟',
+      'clock': '时钟',
       'countdown': '倒计时',
       'stopwatch': '秒表',
       'pomodoro': '番茄钟',
@@ -195,8 +213,19 @@ struct FloatingClock {
     return labels[this.mode] || this.mode;
   }
 
+  private getModeIcon(): string {
+    const icons: Record<DisplayMode, string> = {
+      'clock': '🕐',
+      'countdown': '⏱️',
+      'stopwatch': '⏲️',
+      'pomodoro': '🍅',
+      'worldclock': '🌍'
+    };
+    return icons[this.mode];
+  }
+
   build() {
-    Stack() {
+    Stack({ alignContent: Alignment.Center }) {
       Column() {
         if (this.mode === 'clock') {
           ClockWidget({
@@ -238,7 +267,7 @@ struct FloatingClock {
       .width('100%')
       .height('100%')
       .justifyContent(FlexAlign.Center)
-      .padding({ left: 16, right: 16, top: 12, bottom: 12 });
+      .padding({ left: 18, right: 18, top: 14, bottom: 14 });
 
       if (this.showMenu) {
         this.buildMenu();
@@ -248,13 +277,13 @@ struct FloatingClock {
     .height('100%')
     .backgroundColor(this.getTheme().bgColor)
     .opacity(this.windowOpacity / 100)
-    .borderRadius(16)
+    .borderRadius(20)
     .border({ width: 1, color: this.getTheme().borderColor })
     .shadow({
-      radius: 12,
+      radius: 16,
       color: this.getTheme().shadowColor,
-      offsetX: 2,
-      offsetY: 4
+      offsetX: 0,
+      offsetY: 6
     })
     .gesture(
       TapGesture({ count: 1 })
@@ -265,7 +294,7 @@ struct FloatingClock {
         })
     )
     .gesture(
-      LongPressGesture({ repeat: false, duration: 500 })
+      LongPressGesture({ repeat: false, duration: 400 })
         .onAction(() => {
           this.handleLongPress();
         })
@@ -280,114 +309,149 @@ struct FloatingClock {
 
   @Builder
   buildMenu() {
-    Column({ space: 5 }) {
-      Text(`【${this.getModeLabel()}】设置`)
-        .fontSize(12)
-        .fontColor(this.getTheme().subTextColor)
-        .fontWeight(FontWeight.Medium);
+    Column({ space: 2 }) {
+      // 顶部模式标签
+      Row({ space: 6 }) {
+        Text(this.getModeIcon())
+          .fontSize(12);
+        Text(this.getModeLabel())
+          .fontSize(11)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.getTheme().colors.textPrimary);
+      }
+      .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+      .backgroundColor(this.getTheme().colors.bgSecondary)
+      .borderRadius(100)
+      .margin({ bottom: 6 });
 
-      Divider().color(this.getTheme().borderColor).width('80%');
+      // 菜单项分组 - 显示控制
+      this.buildMenuGroup([
+        { icon: '🎨', label: '切换主题', onClick: () => this.cycleTheme() },
+        { icon: '🔀', label: '切换模式', subLabel: this.getModeLabel(), onClick: () => this.cycleMode() },
+        { icon: '📅', label: this.showDate ? '隐藏日期' : '显示日期', onClick: () => this.toggleShowDate() }
+      ]);
 
-      Text('🔄 切换主题')
-        .fontSize(13)
-        .fontColor(this.getTheme().textColor)
-        .padding({ top: 3, bottom: 3 })
-        .onClick(() => this.cycleTheme());
-
-      Text(`📋 切换模式（${this.getModeLabel()}）`)
-        .fontSize(13)
-        .fontColor(this.getTheme().textColor)
-        .padding({ top: 3, bottom: 3 })
-        .onClick(() => this.cycleMode());
-
-      Text(this.showDate ? '📅 隐藏日期' : '📅 显示日期')
-        .fontSize(13)
-        .fontColor(this.getTheme().textColor)
-        .padding({ top: 3, bottom: 3 })
-        .onClick(() => this.toggleShowDate());
-
-      if (this.mode === 'countdown') {
-        Text('🔄 重置倒计时')
-          .fontSize(13)
-          .fontColor(this.getTheme().textColor)
-          .padding({ top: 3, bottom: 3 })
-          .onClick(() => {
+      // 模式特定操作
+      if (this.mode === 'countdown' || this.mode === 'pomodoro' || this.mode === 'stopwatch') {
+        this.buildMenuDivider();
+        let resetLabel = '重置';
+        let resetAction = () => {};
+        if (this.mode === 'countdown') {
+          resetLabel = '重置倒计时';
+          resetAction = () => {
             this.countdownRemaining = this.countdownTotal;
             this.countdownIsRunning = false;
-          });
-      }
-
-      if (this.mode === 'pomodoro') {
-        Text('🔄 重置番茄钟')
-          .fontSize(13)
-          .fontColor(this.getTheme().textColor)
-          .padding({ top: 3, bottom: 3 })
-          .onClick(() => {
+          };
+        } else if (this.mode === 'pomodoro') {
+          resetLabel = '重置番茄钟';
+          resetAction = () => {
             this.pomodoroRemaining = this.pomodoroWorkMin * 60;
             this.pomodoroIsRunning = false;
             this.pomodoroPhase = 'work';
             this.pomodoroCompleted = 0;
-          });
-      }
-
-      if (this.mode === 'stopwatch') {
-        Text('🔄 重置秒表')
-          .fontSize(13)
-          .fontColor(this.getTheme().textColor)
-          .padding({ top: 3, bottom: 3 })
-          .onClick(() => {
+          };
+        } else {
+          resetLabel = '重置秒表';
+          resetAction = () => {
             this.stopwatchElapsed = 0;
             this.stopwatchIsRunning = false;
-          });
+          };
+        }
+        this.buildMenuGroup([
+          { icon: '↺', label: resetLabel, onClick: resetAction }
+        ]);
       }
 
-      Divider().color(this.getTheme().borderColor).width('80%');
+      // 闹钟和状态
+      this.buildMenuDivider();
+      this.buildMenuGroup([
+        {
+          icon: '🔔',
+          label: this.alarmEnabled
+            ? `${String(this.alarmHour).padStart(2, '0')}:${String(this.alarmMinute).padStart(2, '0')}`
+            : '闹钟',
+          subLabel: this.alarmEnabled ? '已开启' : '主界面设置',
+          color: this.alarmEnabled ? this.getSuccess() : undefined,
+          onClick: async () => {
+            if (this.alarmEnabled) {
+              this.alarmEnabled = false;
+              await PreferencesUtil.setAlarmEnabled(false);
+            } else {
+              this.showMenu = false;
+            }
+          }
+        },
+        {
+          icon: '🔲',
+          label: '透明度',
+          subLabel: `${this.windowOpacity}%`,
+          onClick: () => { this.showMenu = false; }
+        }
+      ]);
 
-      if (this.alarmEnabled) {
-        Text(`🔔 闹钟 ${String(this.alarmHour).padStart(2, '0')}:${String(this.alarmMinute).padStart(2, '0')} 已开启`)
-          .fontSize(12)
-          .fontColor('#81C784')
-          .padding({ top: 3, bottom: 3 })
-          .onClick(async () => {
-            this.alarmEnabled = false;
-            await PreferencesUtil.setAlarmEnabled(false);
-          });
-      } else {
-        Text('🔔 设置闹钟（主界面）')
-          .fontSize(12)
-          .fontColor(this.getTheme().subTextColor)
-          .padding({ top: 3, bottom: 3 })
-          .onClick(() => this.showMenu = false);
-      }
+      // 底部操作
+      this.buildMenuDivider();
+      this.buildMenuGroup([
+        { icon: '❌', label: '关闭悬浮窗', color: '#F87171', onClick: () => this.closeFloatingWindow() }
+      ]);
 
-      Text('⏱ 透明度调节（主界面）')
-        .fontSize(12)
-        .fontColor(this.getTheme().subTextColor)
-        .padding({ top: 3, bottom: 3 })
-        .onClick(() => this.showMenu = false);
-
-      Divider().color(this.getTheme().borderColor).width('80%');
-
-      Text('❌ 关闭悬浮窗')
-        .fontSize(13)
-        .fontColor('#FF6B6B')
-        .padding({ top: 3, bottom: 3 })
-        .onClick(() => this.closeFloatingWindow());
-
-      Text('▲ 收起菜单')
-        .fontSize(11)
-        .fontColor(this.getTheme().subTextColor)
-        .padding({ top: 2, bottom: 2 })
+      // 收起提示
+      Text('▲ 点击空白收起')
+        .fontSize(10)
+        .fontColor(this.getTheme().colors.textTertiary)
+        .margin({ top: 6 })
         .onClick(() => {
           this.showMenu = false;
         });
     }
     .width('100%')
     .height('100%')
-    .padding(10)
+    .padding({ top: 14, bottom: 12, left: 12, right: 12 })
     .backgroundColor(this.getTheme().bgColor)
-    .borderRadius(16)
+    .borderRadius(20)
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.Center);
+  }
+
+  @Builder
+  buildMenuGroup(items: Array<{ icon: string; label: string; subLabel?: string; color?: string; onClick: () => void }>) {
+    Column({ space: 0 }) {
+      ForEach(items, (item: { icon: string; label: string; subLabel?: string; color?: string; onClick: () => void }, index: number) => {
+        Row({ space: 8 }) {
+          Text(item.icon)
+            .fontSize(14)
+            .width(18)
+            .textAlign(TextAlign.Center);
+
+          Text(item.label)
+            .fontSize(12)
+            .fontColor(item.color ?? this.getTheme().colors.textPrimary)
+            .layoutWeight(1);
+
+          if (item.subLabel) {
+            Text(item.subLabel)
+              .fontSize(11)
+              .fontColor(item.color ?? this.getTheme().colors.textSecondary);
+          }
+        }
+        .width('100%')
+        .height(32)
+        .padding({ left: 10, right: 10 })
+        .borderRadius(8)
+        .onClick(() => item.onClick());
+      }, (item: { icon: string; label: string; subLabel?: string; color?: string; onClick: () => void }, index: number) => `${item.label}_${index}`);
+    }
+    .width('100%')
+    .backgroundColor(this.getTheme().colors.bgSecondary)
+    .borderRadius(10);
+  }
+
+  @Builder
+  buildMenuDivider() {
+    Divider()
+      .strokeWidth(0.5)
+      .color(this.getTheme().colors.dividerColor)
+      .width('100%')
+      .margin({ top: 4, bottom: 4 });
   }
 }
